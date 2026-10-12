@@ -46,5 +46,67 @@ with forest (A B:Set): Set :=
     empty_f : forest A B |
     add_tree : Gtree A B -> forest A B -> forest A B.
 
-
 End Ejercicio1.
+
+Section Ejercicio2.
+
+Definition Or (p q:bool) : bool :=
+    match p with
+    | true => true
+    | false => q
+    end.
+
+Definition And (p q:bool) : bool :=
+    match p with
+    | true => q
+    | false => false
+    end.
+
+Definition Not (p:bool) : bool :=
+    match p with
+    | true => false
+    | false => true
+    end.
+
+Definition Xor (p q:bool) : bool :=
+    match p with
+    | true => Not q
+    | false => q
+    end.
+
+Definition is_nil (A:Set) (l:list A) : bool :=
+    match l with
+    | listNil _ => true
+    | listCons _ _ _ => false
+    end.
+
+End Ejercicio2.
+
+Section Ejercicio3.
+
+Fixpoint sum (n m:nat) {struct n} : nat :=
+    match n with
+    | O => m
+    | S k => S (sum k m)
+    end.
+
+Fixpoint prod (n m:nat) {struct n} : nat :=
+    match n with
+    | O => O
+    | S k => sum m (prod k m)
+    end.
+
+Fixpoint pot (n m:nat) {struct m} : nat :=
+    match m with
+    | O => S O
+    | S k => prod n (pot n k)
+    end.
+
+Fixpoint leBool (n m:nat) {struct n} : bool :=
+    match n, m with
+    | O, _ => true
+    | S _, O => false
+    | S k, S p => leBool k p
+    end.
+
+End Ejercicio3.
