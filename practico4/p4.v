@@ -110,3 +110,144 @@ Fixpoint leBool (n m:nat) {struct n} : bool :=
     end.
 
 End Ejercicio3.
+
+Section Ejercicio4.
+
+Fixpoint length (A:Set) (l:list A) {struct l} : nat :=
+    match l with
+    | listNil _ => O
+    | listCons _ _ k => S (length A k)
+    end.
+
+Fixpoint append (A:Set) (l k:list A) {struct l} : list A :=
+    match l with
+    | listNil _ => k
+    | listCons _ x lr => listCons A x (append A lr k)
+    end.
+
+Fixpoint reverseAux (A:Set) (l ret:list A) {struct l} : list A :=
+    match l with
+    | listNil _ => ret
+    | listCons _ x lr => reverseAux A lr (listCons A x ret)
+    end.
+Definition reverse (A:Set) (l:list A) : list A :=
+    reverseAux A l (listNil A).
+
+Fixpoint filter (A:Set) (f:A->bool) (l:list A) {struct l} : list A :=
+    match l with
+    | listNil _ => listNil A
+    | listCons _ x lr => 
+        match (f x) with
+        | true => listCons A x (filter A f lr)
+        | false => filter A f lr
+        end
+    end.
+
+Fixpoint map (A B:Set) (f:A->B) (l:list A) {struct l} : list B :=
+    match l with
+    | listNil _ => listNil B
+    | listCons _ x lr => listCons B (f x) (map A B f lr)
+    end.
+
+Fixpoint exists_ (A:Set) (f:A->bool) (l:list A) {struct l} : bool :=
+    match l with
+    | listNil _ => false
+    | listCons _ x lr =>
+        match (f x) with
+        | true => true
+        | false => exists_ A f lr
+        end
+    end.
+
+End Ejercicio4.
+
+Section Ejercicio5.
+
+Fixpoint inverse (A:Set) (b:bintree A) {struct b} : bintree A :=
+    match b with
+    | bintreeNil _ => bintreeNil A
+    | bintreeCons _ x b1 b2 => bintreeCons A x (inverse A b2) (inverse A b1)
+    end.
+
+Fixpoint countExt (A B:Set) (t:Gtree A B) : nat :=
+    match t with
+    | leaf _ _ _ => S O
+    | node _ _ _ f => countExtF A B f
+    end
+with countExtF (A B:Set) (f:forest A B) : nat :=
+    match f with
+    | empty_f _ _ => O
+    | add_tree _ _ t1 f1 => sum (countExt A B t1) (countExtF A B f1)
+    end.
+
+Fixpoint countInt (A B:Set) (t:Gtree A B) : nat :=
+    match t with
+    | leaf _ _ _ => O
+    | node _ _ _ f => S (countIntF A B f)
+    end
+with countIntF (A B:Set) (f:forest A B) : nat :=
+    match f with
+    | empty_f _ _ => O
+    | add_tree _ _ t1 f1 => sum (countInt A B t1) (countIntF A B f1)
+    end.
+
+Definition intGtExt (A B:Set) (t:Gtree A B) : bool := 
+    Not (leBool (countInt A B t) (countExt A B t)).
+
+End Ejercicio5.
+
+Section Ejercicio6.
+
+Definition listN := list nat.
+
+Fixpoint eqBool (n m:nat) {struct n} : bool :=
+    match n, m with
+    | O, O => true
+    | S n1, S m1 => eqBool n1 m1
+    | _, _ => false
+    end.
+Definition member (n:nat) (l:listN) : bool :=
+    exists_ nat (eqBool n) l.
+
+Definition delete (l:listN) (n:nat) : listN :=
+    filter nat (fun x => Not (eqBool n x)) l.
+
+Fixpoint insert (n:nat) (l:listN) : listN :=
+    match l with
+    | listNil _ => listCons nat n (listNil nat)
+    | listCons _ m l1 =>
+        match (leBool n m) with
+        | false => listCons nat m (insert n l1)
+        | true => listCons nat n l
+        end
+    end.
+
+Fixpoint insert_sort (l:listN) : listN :=
+    match l with
+    | listNil _ => listNil nat
+    | listCons _ n l1 => insert n (insert_sort l1)
+    end.
+
+Definition memberG (A:Set) (eqA:A->A->bool) (a:A) (l:list A) : bool :=
+    exists_ A (eqA a) l.
+    
+Definition deleteG (A:Set) (eqA:A->A->bool) (l:list A) (a:A) : list A :=
+    filter A (fun x => Not (eqA a x)) l.
+
+Fixpoint insertG (A:Set) (leBool:A->A->bool) (n:A) (l:list A) : list A :=
+    match l with
+    | listNil _ => listCons A n (listNil A)
+    | listCons _ m l1 =>
+        match (leBool n m) with
+        | false => listCons A m (insertG A leBool n l1)
+        | true => listCons A n l
+        end
+    end.
+
+Fixpoint insert_sortG (A:Set) (leBool:A->A->bool) (l:list A) : list A :=
+    match l with
+    | listNil _ => listNil A
+    | listCons _ n l1 => insertG A leBool n (insert_sortG A leBool l1)
+    end.
+
+End Ejercicio6.
