@@ -462,3 +462,155 @@ Proof.
 Qed.
 
 End Ejercicio9.
+
+Section Ejercicio10.
+(* 
+Ejercicio 4.10. Demuestre las siguientes propiedades de la suma y el producto, definidos en el ejercicio 4.3:  
+1.  ProdConm : forall n m : nat, prod n m = prod m n 
+2.  ProdAsoc : forall n m p : nat, prod n (prod m p) = prod (prod n m) p 
+3.  ProdDistr : forall n m p : nat, prod n (sum m p) = sum (prod n m) (prod n p) 
+*)
+
+Lemma prod_n_0 : forall n : nat, prod n 0 = 0.
+Proof.
+  induction n as [| k IH].
+  - reflexivity.
+  - simpl. assumption.
+Qed.
+
+Lemma prod_n_Sm : forall n m : nat, prod n (S m) = sum n (prod n m).
+Proof.
+  intros n m.
+  induction n as [| k IH].
+  - reflexivity.
+  - simpl.
+    rewrite IH.
+    rewrite (SumAsoc m k).
+    rewrite (SumAsoc k m).
+    rewrite (SumConm m k).
+    reflexivity.
+Qed.
+
+Theorem ProdConm : forall n m : nat, prod n m = prod m n.
+Proof.
+  intros n m.
+  induction n as [| k IH].
+  - simpl.
+    rewrite prod_n_0.
+    reflexivity.
+  - simpl.
+    rewrite prod_n_Sm.
+    rewrite IH.
+    reflexivity.
+Qed.
+
+Lemma prod_factor : forall n m p : nat, prod (sum n m) p = sum (prod n p) (prod m p).
+Proof.
+  intros n m p.
+  induction n as [| k IH].
+  - reflexivity.
+  - simpl.
+    rewrite IH.
+    rewrite SumAsoc.
+    reflexivity.
+Qed.
+
+Theorem ProdAsoc : forall n m p : nat, prod n (prod m p) = prod (prod n m) p.
+Proof.
+  intros n m p.
+  induction n as [| k IH].
+  - reflexivity.
+  - simpl.
+    rewrite IH.
+    rewrite prod_factor.
+    reflexivity.
+Qed.
+
+Theorem ProdDistr : forall n m p : nat, prod n (sum m p) = sum (prod n m) (prod n p).
+Proof.
+  intros n m p.
+  rewrite (ProdConm n (sum m p)).
+  rewrite (ProdConm n m).
+  rewrite (ProdConm n p).
+  apply prod_factor.
+  (* intros n m p.
+  induction n as [| k IH].
+  - reflexivity.
+  - simpl.
+    rewrite IH.
+    rewrite (SumAsoc (sum m p) (prod k m) (prod k p)).
+    rewrite <- (SumAsoc m p (prod k m)).
+    rewrite (SumConm p (prod k m)).
+    rewrite (SumAsoc m (prod k m) p).
+    rewrite <- (SumAsoc (sum m (prod k m)) p (prod k p)).
+    reflexivity. *)
+Qed.
+
+End Ejercicio10.
+
+Section Ejercicio11.
+(*
+Ejercicio 4.11.  Demuestre las siguientes propiedades de las funciones definidas en el 
+ejercicio 4.4 (no escribimos el parámetro A para hacer más fácil la lectura):  
+1. L1 : forall (A : Set) (l : list A), append A l (nil A) = l   
+2. L2 : forall (A : Set) (l : list A) (a : A), ~(cons A a l) = nil A 
+3. L3 : forall (A : Set) (l m : list A) (a : A), cons A a (append A l m) = append A (cons A a l) m 
+4. L4 : forall (A : Set) (l m : list A), length A (append A l m) = sum (length A l) (length A m)  
+5. L5 : forall (A : Set) (l : list A), length A (reverse A l) = length A l
+*)
+
+Theorem L1 : forall (A : Set) (l : list A), append A l (listNil A) = l.
+Proof.
+  intros A l.
+  induction l as [| a r HI].
+  - reflexivity.
+  - simpl.
+    rewrite HI.
+    reflexivity.
+Qed.
+
+Theorem L2 : forall (A : Set) (l : list A) (a : A), ~(listCons A a l) = listNil A.
+Proof.
+  intros A l a.
+  discriminate.
+Qed.
+
+Theorem L3 : forall (A : Set) (l m : list A) (a : A), listCons A a (append A l m) = append A (listCons A a l) m.
+Proof.
+  intros A l m a.
+  simpl.
+  reflexivity.
+Qed.
+
+Theorem L4 : forall (A : Set) (l m : list A), length A (append A l m) = sum (length A l) (length A m).
+Proof.
+  intros A l m.
+  induction l as [| a k HI].
+  - reflexivity.
+  - simpl.
+    rewrite HI.
+    reflexivity.
+Qed.
+
+Lemma l5_1: forall (A : Set) (l acc : list A), length A (reverseAux A l acc) = sum (length A l) (length A acc).
+Proof.
+  intros A l.
+  induction l as [| a r HI]; intro acc.
+  - reflexivity.
+  - simpl.
+    rewrite HI.
+    simpl.
+    rewrite SumS.
+    reflexivity.
+Qed.
+
+Theorem L5 : forall (A : Set) (l : list A), length A (reverse A l) = length A l.
+Proof.
+  intros A l.
+  unfold reverse.
+  rewrite l5_1.
+  simpl.
+  apply SumO.
+Qed.
+
+End Ejercicio11.
