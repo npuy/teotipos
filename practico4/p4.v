@@ -33,7 +33,7 @@ Inductive sorted (A:Set) (R:A->A->Prop): list A -> Prop :=
 
 Inductive mirror (A:Set): bintree A -> bintree A -> Prop :=
     mirror0 : mirror A (bintreeNil A) (bintreeNil A) |
-    mirrorS : forall (a: A) (x1 x2 y1 y2:bintree A), mirror A x1 y1 -> mirror A x2 y2 -> mirror A (bintreeCons A a x1 x2) (bintreeCons A a y1 y2).
+    mirrorS : forall (a: A) (x1 x2 y1 y2:bintree A), mirror A x1 y2 -> mirror A x2 y1 -> mirror A (bintreeCons A a x1 x2) (bintreeCons A a y1 y2).
 
 Inductive isomorfo (A:Set): bintree A -> bintree A -> Prop :=
     isomorfo0 : isomorfo A (bintreeNil A) (bintreeNil A) |
@@ -614,3 +614,159 @@ Proof.
 Qed.
 
 End Ejercicio11.
+
+Section Ejercicio12.
+(* 
+Ejercicio 4.12.  Demuestre las siguientes propiedades de las funciones definidas en el ejercicio 4.4:  
+1. L7 : forall (A B : Set) (l m : list A) (f : A -> B),  map A B f (append A l m) = append B (map A B f l) (map A B f m). 
+2. L8 : forall (A : Set) (l m : list A) (P : A -> bool), filter A P (append A l m) = append A (filter A P l) (filter A P m)  
+3. L9 : forall (A : Set) (l : list A) (P : A -> bool), filter A P (filter A P l) = filter A P l  
+4. L10 : forall (A : Set) (l m n : list A), append A l (append A m n) = append A (append A l m) n 
+*)
+
+Theorem L7 : forall (A B : Set) (l m : list A) (f : A -> B),  map A B f (append A l m) = append B (map A B f l) (map A B f m). 
+Proof.
+  intros A B l m f.
+  induction l as [| a r HI].
+  - reflexivity.
+  - simpl.
+    rewrite HI.
+    reflexivity.
+Qed.
+
+Lemma l8_1 : forall (A : Set) (P : A -> bool), filter A P (listNil A) = listNil A.
+Proof.
+  reflexivity.
+Qed.
+
+Theorem L8 : forall (A : Set) (l m : list A) (P : A -> bool), filter A P (append A l m) = append A (filter A P l) (filter A P m).
+Proof.
+  intros A l m P.
+  induction l as [| a r HI].
+  - reflexivity.
+  - simpl.
+    destruct (P a).
+    + rewrite HI. reflexivity.
+    + rewrite HI. reflexivity.
+Qed.
+
+Theorem L9 : forall (A : Set) (l : list A) (P : A -> bool), filter A P (filter A P l) = filter A P l.
+Proof.
+  intros A l.
+  induction l as [| a r HI];
+  intro P.
+  - reflexivity.
+  - simpl.
+    destruct (P a) eqn:Ha.
+    + simpl.
+      rewrite Ha.
+      rewrite HI.
+      reflexivity.
+    + rewrite HI. reflexivity.
+Qed.
+
+Theorem L10 : forall (A : Set) (l m n : list A), append A l (append A m n) = append A (append A l m) n.
+Proof.
+  intros A l m n.
+  induction l as [| a r HI].
+  - reflexivity.
+  - simpl.
+    rewrite HI.
+    reflexivity.
+Qed.
+
+End Ejercicio12.
+
+Section Ejercicio13.
+(*
+Ejercicio 4.13.  Considere  la  siguiente  función  definida  sobre  listas  de  elementos  de  un  tipo genérico: 
+Fixpoint filterMap (A B : Set) (P : B -> bool) (f : A -> B)     (l : list A) {struct l} : list B :=     match l with     | nil => nil B     | cons a l1 =>         match P (f a) with         | true => cons B (f a) (filterMap A B P f l1)         | false => filterMap A B P f l1        end    end.    
+Pruebe el siguiente lema: 
+Lemma FusionFilterMap : forall (A B : Set) (P : B -> bool) (f : A -> B) (l : list A), 
+  filter B P (map A B f l) = filterMap A B P f l. 
+Donde las funciones filter y map son las definidas en el ejercicio 4.4.
+*)
+Fixpoint filterMap (A B : Set) (P : B -> bool) (f : A -> B) (l : list A) {struct l} : list B :=
+  match l with
+  | listNil _ => listNil B
+  | listCons _ a l1 =>
+    match P (f a) with
+    | true => listCons B (f a) (filterMap A B P f l1)
+    | false => filterMap A B P f l1
+    end
+  end.    
+
+Lemma FusionFilterMap : forall (A B : Set) (P : B -> bool) (f : A -> B) (l : list A), 
+  filter B P (map A B f l) = filterMap A B P f l. 
+Proof.
+  intros A B P f l.
+  induction l as [| a r HI].
+  - reflexivity.
+  - simpl.
+    destruct (P (f a)).
+    + rewrite HI. reflexivity.
+    + rewrite HI. reflexivity.
+Qed.
+
+End Ejercicio13.
+
+Section Ejercicio14.
+(* Ejercicio 4.14.  Demuestre que la función inverse del ejercicio 4.5 da como resultado un árbol 
+que  cumple  con  la  propiedad  de  ser  espejo  del  dado  (utilice  la  definición  de  espejo  del 
+ejercicio 4.1).  *)
+
+Theorem inverse_mirror : forall (A : Set) (t : bintree A), mirror A t (inverse A t).
+Proof.
+  intros A t.
+  induction t as [| a l HIl r HIr].
+  - simpl.
+    apply mirror0.
+  - simpl.
+    apply mirrorS;
+    assumption.
+Qed.
+
+End Ejercicio14.
+
+Section Ejercicio15.
+(* Ejercicio 4.15.
+1. Demuestre que la función identidad para árboles binarios de elementos de un tipo genérico 
+da como resultado un árbol que cumple con la propiedad de ser isomorfo del dado. 
+2. Pruebe que la relación de isomorfismo entre árboles binarios es reflexiva y simétrica. 
+Utilice la definición de isomorfo del ejercicio 4.1.  *)
+
+Fixpoint idTree (A : Set) (t : bintree A) : bintree A :=
+  match t with
+  | bintreeNil _ => bintreeNil A
+  | bintreeCons _ a l r => bintreeCons A a (idTree A l) (idTree A r)
+  end.
+
+Theorem isomorfo_identidad : forall (A : Set) (t : bintree A), isomorfo A t (idTree A t).
+Proof.
+  intros A t.
+  induction t as [| a l HIl r HIr].
+  - simpl. apply isomorfo0.
+  - simpl.
+    apply isomorfoS;
+    assumption.
+Qed.
+
+End Ejercicio15.
+
+Section Ejercicio16.
+(* Ejercicio 4.16. 
+Defina el tipo de datos Tree que representa árboles binarios de elementos de un 
+tipo  genérico  que  sólo  guarda  información  en  los  nodos  hojas  (nodos  externos).  Los  nodos 
+internos no guardan información. El árbol más pequeño es una hoja. 
+1. Defina una función mapTree que dado un árbol de tipo (Tree A), para un tipo genérico A, 
+y una función f:A->B, con B un Set dado, retorne un árbol de tipo (Tree B) obtenido por  
+la aplicación de la función f a cada uno de los nodos hojas del árbol parámetro. 
+2. Defina  una  función  que  cuente  la  cantidad  de  nodos  hojas  que  posee  un  árbol  de  tipo  
+(Tree A), para un tipo genérico A. 
+3. Pruebe que la función MapTree preserva la cantidad de nodos hojas del árbol parámetro. 
+4. Defina una función hojas que retorne una lista con las hojas de un árbol de tipo (Tree A), 
+para un tipo genérico A. Pruebe luego que la cantidad de nodos hojas que posee un árbol de 
+tipo  (Tree  A),  para  un  tipo  genérico  A,  es  igual  a  la  longitud  de  la  lista  resultante  de 
+aplicarle la función hojas al árbol. *)
+
+End Ejercicio16.
