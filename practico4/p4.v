@@ -770,3 +770,165 @@ tipo  (Tree  A),  para  un  tipo  genérico  A,  es  igual  a  la  longitud  de 
 aplicarle la función hojas al árbol. *)
 
 End Ejercicio16.
+
+Section Ejercicio17.
+(* Ejercicio 4.17.  
+1. Defina  inductivamente  una  relación  binaria  posfijo  entre  listas  de  elementos  de  un  tipo 
+genérico, tal que una lista l1 se relaciona con una lista l2 si y sólo si l1 es un posfijo de l2 
+(notación:  l1 « l2). Más formalmente, l1 « l2  sii  l2 = l3++l1, para alguna lista l3, donde 
+++ representa la concatenación de listas (append).  
+2. Defina la función ++ entre listas de elementos de un tipo  genérico  y  pruebe la  corrección 
+de la relación posfijo del ejercicio anterior demostrando que: 
+2.1. para todas listas l1, l2 y l3:  Si l2 = l3++l1 entonces l1 « l2. 
+2.2. para todas listas l1, l2: Si l1 « l2 entonces existe una lista l3 tal que l2 = l3++l1. 
+2.3. Pruebe que para todas listas l1, l2 y l3 se cumple que l2 « l1++l2. 
+3. Defina  una  función  último  que  dada  una  lista  de  elementos  de  un  tipo  genérico  retorne  la 
+lista  que  contiene  a  su  último  elemento.  Si  la  lista  parámetro  es  vacía,  la  función  último 
+retorna la lista vacía.  
+4. Pruebe que la función último de una lista es un posfijo de dicha lista. *)
+
+(* 17.1. *)
+Inductive posfijo (A:Set) : list A -> list A -> Prop :=
+  | posfijo0 : forall (l : list A), posfijo A l l
+  | posfijo1 : forall (a : A) (l m : list A), posfijo A l m -> posfijo A l (listCons A a m).
+
+Lemma posfijo_nil : forall (A:Set) (l : list A), posfijo A (listNil A) l.
+Proof.
+  intros A l.
+  induction l as [| a r HI].
+  - apply posfijo0.
+  - apply posfijo1.
+    assumption.
+Qed.
+
+(* 17.2.3. *)
+Theorem posfijo_l : forall (A:Set) (l m : list A), posfijo A l (append A m l).
+Proof.
+  intros A l m.
+  induction m.
+  - simpl. apply posfijo0.
+  - simpl. apply posfijo1. assumption.
+Qed.
+
+(* 17.2.1 *)
+Theorem posfijo_append : forall (A:Set) (l1 l2 l3 : list A), l2 = (append A l3 l1) -> posfijo A l1 l2.
+Proof.
+  intros A l1 l2 l3 H.
+  rewrite H.
+  apply posfijo_l.
+Qed.
+
+(* 17.2.2 *)
+Theorem posfijo_exist_l3 : forall (A:Set) (l1 l2 : list A), 
+  posfijo A l1 l2 -> exists (l3: list A), l2 = (append A l3 l1).
+Proof.
+  intros A l1 l2 H.
+  induction H as [| a l1 l2 H IH].
+  - exists (listNil A).
+    reflexivity.
+  - elim IH.
+    intros l3 H1.
+    exists (listCons A a l3).
+    simpl.
+    rewrite H1.
+    reflexivity.
+Qed.
+
+(* 17.3 *)
+Fixpoint ultimo (A:Set) (l:list A) : list A :=
+  match l with
+  | listNil _ => listNil A
+  | listCons _ a (listNil _) => l
+  | listCons _ a r => ultimo A r
+  end.
+
+(* 17.4 *)
+Theorem posfijo_ultimo : forall (A:Set) (l:list A), posfijo A (ultimo A l) l.
+Proof.
+  intros A l.
+  induction l as [| a r HI].
+  - simpl. apply posfijo0.
+  - simpl.
+    destruct r.
+    + apply posfijo0.
+    + apply posfijo1.
+      assumption.
+Qed.
+
+End Ejercicio17.
+
+Section Ejercicio20.
+
+(* 20.1 *)
+Inductive ACom (A:Set) : nat -> Set :=
+  | AComNil : A -> ACom A 0
+  | AComCons : forall (n:nat), A -> ACom A n -> ACom A n -> ACom A (S n).
+
+(* 20.2 *)
+Fixpoint h (A:Set) (n:nat) (t:ACom A n) : nat :=
+  match t with
+  | AComNil _ _ => S 0
+  | AComCons _ m _ l r => sum (h A m l) (h A m r)
+  end.
+
+(* Parameter pot: nat -> nat -> nat. *)
+Axiom potO : forall n : nat, pot (S n) 0 = 1.
+(*  n0 = 1   forall n>0  *)
+Axiom potS : forall m: nat, pot 2 (S m) = sum (pot 2 m) (pot 2 m).
+(*  2m+1 = 2m + 2m  *)
+
+(* 20.3 *)
+Theorem h_2n : forall (A:Set) (n:nat) (t:ACom A n), h A n t = pot 2 n.
+Proof.
+  intros A n t.
+  induction t as [| t a l IHl r IHr].
+  - reflexivity.
+  - rewrite potS.
+    simpl.
+    rewrite IHl.
+    rewrite IHr.
+    reflexivity.
+Qed.
+
+End Ejercicio20.
+
+Section Ejercicio21.
+(* Ejercicio 4.21.  
+1. Defina inductivamente la familia de conjuntos sobre los naturales AB de árboles binarios 
+de altura n y elementos de un tipo genérico A (la altura del árbol vacío es 0).
+
+2. Defina  una  función  camino  que,  para  todo  n:nat  retorne  una  lista  con  el  camino  más 
+largo de un árbol de tipo (AB A n), con A el tipo genérico de los elementos del árbol. Si 
+hay  más  de  un  camino  más  largo,  la  función  debe  retornar  el  camino  de  más  a  la 
+izquierda de ellos. El camino debe comenzar con el nodo de la raíz del árbol  y finalizar 
+con  una  hoja.  Si  el  árbol  es  vacío,  camino  debe  retornar  la  lista  vacía.  La  función 
+camino debe recorrer, en el cómputo, sólo un camino del árbol. 
+
+3.  Pruebe  que  la  función  camino,  dado  un  árbol  de  tipo  (AB A n)  retorna  una  lista  de 
+largo igual a n. *)
+
+(* 21.1 *)
+Inductive AB (A:Set) : nat -> Set :=
+  | nilAB : AB A O
+  | consABl : forall (n m:nat), leq m n -> A -> AB A n -> AB A m -> AB A (S n)
+  | consABr : forall (n m:nat), leq (S n) m -> A -> AB A n -> AB A m -> AB A (S m).
+
+(* 21.2 *)
+Fixpoint camino (A:Set) (n:nat) (t:AB A n) : list A :=
+  match t with
+  | nilAB _ => listNil A
+  | consABl _ n' m' _ a l _ => listCons A a (camino A n' l)
+  | consABr _ n' m' _ a _ r => listCons A a (camino A m' r)
+  end.
+
+(* 22.3 *)
+Theorem camino_length : forall (A:Set) (n:nat) (t: AB A n), length A (camino A n t) = n.
+Proof.
+  intros A n t.
+  induction t as [| n' m' Hl a l HIl r HIr | n' m' Hl a l HIl r HIr].
+  - reflexivity.
+  - simpl. rewrite HIl. reflexivity.
+  - simpl. rewrite HIr. reflexivity.
+Qed.
+
+End Ejercicio21.
