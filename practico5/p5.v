@@ -155,3 +155,88 @@ Proof.
 Qed.
 
 End Ejercicio2.
+
+Section Ejercicio3.
+(* Ejercicio 5.3. Se quiere definir conjuntos en Coq como una restricción de listas.  
+1. Defina, a partir de las siguientes declaraciones, la relación inductiva unaria isSet que contiene a las 
+listas sin elementos repetidos.  *)
+Variable A : Set.  
+
+Parameter equal : A -> A -> bool. 
+Axiom equal1 : forall x y : A, equal x y = true -> x = y. 
+Axiom equal2 : forall x : A, equal x x <> false.  
+
+Inductive List : Set :=   
+| nullL : List   
+| consL : A -> List -> List.  
+
+Inductive MemL (a : A) : List -> Prop :=   
+| hereL : forall x : List, MemL a (consL a x)   
+| thereL : forall x : List, MemL a x -> forall b : A, MemL a (consL b x).  
+
+Inductive isSet : List -> Prop := 
+| nullSet : isSet nullL
+| consSet : forall (a : A) (l : List), isSet l -> ~ (MemL a l) -> isSet (consL a l).
+
+(* 2. Defina una función recursiva deleteAll que dado un elemento y una lista, elimine todas las 
+ocurrencias del elemento de la lista.  *)
+Fixpoint deleteAll (a : A) (l : List) : List :=
+  match l with
+  | nullL => nullL
+  | consL x lr =>
+    if equal a x
+    then deleteAll a lr
+    else consL x (deleteAll a lr)
+  end.
+
+
+(* 3. Pruebe la siguiente propiedad: *)
+Lemma DeleteAllNotMember : forall (l : List) (x : A),  
+  ~ MemL x (deleteAll x l). 
+Proof.
+  intros l x H.
+  induction l.
+  - inversion H.
+  - simpl in H.
+    destruct (equal x a) eqn:E.
+    + contradiction.
+    + inversion H.
+      * subst. 
+        apply (equal2 a).
+        assumption.
+      * contradiction.
+Qed.
+
+(* 4. Defina una función recursiva delete que dado un elemento y una lista, elimine la primera ocurrencia 
+del elemento de la lista.  *)
+Fixpoint delete (a : A) (l : List) : List :=
+  match l with
+  | nullL => nullL
+  | consL x lr =>
+    if equal a x
+    then lr
+    else consL x (delete a lr)
+  end.
+
+
+(* 5. Pruebe la siguiente propiedad inherente a los conjuntos:   *)
+Lemma DeleteNotMember : forall (l : List) (x : A), isSet l ->   
+  ~ MemL x (delete x l).  
+Proof.
+  intros l x H H1.
+  induction l.
+  - simpl in H1.
+    inversion H1.
+  - simpl in H1.
+    destruct (equal x a) eqn:E.
+    + inversion H. 
+      apply equal1 in E.
+      subst.
+      contradiction.
+    + inversion H.
+      inversion H1; subst.
+      * apply (equal2 a). assumption.
+      * apply IHl; assumption.
+Qed.
+
+End Ejercicio3.
