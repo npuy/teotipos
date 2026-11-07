@@ -1,3 +1,5 @@
+(* Nicolas Pereira - 5.139.786-4 *)
+
 Section Ejercicio1.
 (* Ejercicio 5.1.  Considere las siguientes relaciones inductivas:  
  Inductive LE : nat -> nat -> Prop :=   
@@ -240,3 +242,227 @@ Proof.
 Qed.
 
 End Ejercicio3.
+
+Section Ejercicio4.
+(* Ejercicio 5.4. Considere la siguiente definición de árboles binarios de elementos de un tipo genérico:  *)
+Variable A : Set.   
+Inductive AB: Set :=     
+  | null : AB    
+  | cons: A -> AB-> AB -> AB. 
+
+(* a)  Defina inductivamente la relación Pertenece de pertenencia de un elemento a un árbol binario de 
+tipo AB.  *)
+Inductive Pertenece: A -> AB -> Prop :=
+  | hereAB : forall (a : A) (l r : AB), Pertenece a (cons a l r)
+  | thereLeftAB : forall (a b : A) (l r : AB), Pertenece a l -> Pertenece a (cons b l r)
+  | thereRigthAB : forall (a b : A) (l r : AB), Pertenece a r -> Pertenece a (cons b l r).
+
+(* b)  Defina una función recursiva Borrar que dado un árbol binario ab de tipo AB y un elemento x de 
+tipo A retorne el árbol sin aquellos subárboles de ab que tienen a x como raíz. 
+
+Asuma el siguiente parámetro para la igualdad de elementos de tipo A:  *)
+Parameter eqGen: A->A->bool. 
+
+Fixpoint Borrar (a : A) (t : AB) : AB :=
+  match t with
+  | null => null
+  | cons x l r =>
+    if eqGen a x
+    then null
+    else cons x (Borrar a l) (Borrar a r)
+  end.
+
+(* c)  Pruebe el lema:  *)
+(* Asuma la siguiente propiedad referente a la igualdad de elementos de tipos A:  *)
+Axiom eqGen1: forall (x:A), ~(eqGen x x)=false.  
+
+Lemma BorrarNoPertenece: forall (x:AB) (a:A), ~(Pertenece a (Borrar a x)).  
+Proof.
+  intros t a H.
+  induction t as [| x l IHl r IHr].
+  - inversion H.
+  - simpl in H.
+    destruct (eqGen a x) eqn:E.
+    + inversion H.
+    + inversion H; subst.
+      * apply eqGen1 in E. assumption.
+      * apply IHl. assumption.
+      * apply IHr. assumption.
+Qed.
+
+(* d) Defina inductivamente la relación SinRepetidos que contiene a los árboles binarios sin elementos 
+repetidos. El árbol vacío pertenece a la relación.   *)
+Inductive SinRepetidos : AB -> Prop :=
+  | nullSR : SinRepetidos null
+  | consSR : forall (a : A) (l r : AB), 
+    SinRepetidos l -> SinRepetidos r -> 
+    ~(Pertenece a l) -> ~(Pertenece a r) -> 
+    (forall (b : A), Pertenece b l -> ~ Pertenece b r) ->
+    SinRepetidos (cons a l r).
+
+End Ejercicio4.
+
+Section Ejercicio5.
+(* Ejercicio 5.5.  Considere la siguiente gramática para expresiones booleanas: 
+Var  : =   0  |  1  |  2 | ... 
+bool   : =   true  | false  
+BE  : =   Var   
+  | bool   
+  | (  BE  /\  BE  )   
+  | ( ~  BE )  
+1. Defina en Coq los tipos Var como el conjunto de naturales y BoolExpr para representar 
+el lenguaje BE.   *)
+Definition Var := nat.
+
+Inductive BoolExpr : Set :=
+  | bvar : Var -> BoolExpr
+  | bbool : bool -> BoolExpr
+  | band : BoolExpr -> BoolExpr -> BoolExpr
+  | bnot : BoolExpr -> BoolExpr.
+
+(* 2. La memoria es una función que asocia un valor booleano a cada variable y se dispone de 
+una función lookup que dada una memoria y una variable, devuelve el valor de la 
+variable en la memoria; lookup: Memoria -> Var -> Valor. La notación (e, )  w se lee 
+“la expresión booleana e se evalúa al valor booleano w en la memoria ”.  
+Definimos la relación de evaluación de expresiones booleanas en un estado de la 
+memoria , donde el conjunto de valores es bool, de acuerdo a las siguientes reglas:   
+Regla evar: (v, )  (lookup  v)   
+Regla eboolt: (true, )  true   
+Regla eboolf: (false, )  false  
+Regla eandl: Si (e1,)  false entonces ((e1e2),)  false   
+Regla eandr: Si (e2,)  false entonces ((e1e2),)  false   
+Regla eandrl: Si (e1,)  true y (e2,)  true entonces ((e1e2),)  true  
+Regla enott: Si (e,)  true entonces (e,  false   
+Regla enotf: Si (e,)  false entonces (e,  true 
+Defina en Coq los tipos Valor, Memoria y la relación BEval definida por las reglas 
+anteriores.   *)
+Definition Valor := bool.
+
+Definition Memoria := Var -> Valor.
+Definition lookup (m:Memoria) (v:Var) : Valor := m v.
+
+Inductive BEval : BoolExpr -> Memoria -> Valor -> Prop :=
+  | evar : forall (v : Var) (m : Memoria), BEval (bvar v) m (lookup m v)
+  | eboolt : forall (m : Memoria), BEval (bbool true) m true
+  | eboolf : forall (m : Memoria), BEval (bbool false) m false
+  | eandl : forall (e1 e2 : BoolExpr) (m : Memoria), 
+      BEval e1 m false -> BEval (band e1 e2) m false
+  | eandr : forall (e1 e2 : BoolExpr) (m : Memoria), 
+      BEval e2 m false -> BEval (band e1 e2) m false
+  | eandrl : forall (e1 e2 : BoolExpr) (m : Memoria), 
+      BEval e1 m true -> BEval e2 m true -> BEval (band e1 e2) m true
+  | enott : forall (e : BoolExpr) (m : Memoria), 
+      BEval e m true -> BEval (bnot e) m false
+  | enotf : forall (e : BoolExpr) (m : Memoria), 
+      BEval e m false -> BEval (bnot e) m true.
+
+(* 3. Demuestre en Coq las siguientes propiedades:  
+a. Para toda memoria  la expresión true evaluada en la memoria  nunca da el valor false.  
+b. Si (e1,   true y si (e2,   w entonces (e1e2, )  w cualesquiera sean , e1, e2 y w.  
+c. Si (e,   w1 y (e,   w2 entonces w1 = w2, cualesquiera sean w1 y w2.  
+d. Si (e1,   false entonces no se da que ((e1e2),  true, cualesquiera sean e1 y e2.   *)
+
+Theorem teo_a : forall (m : Memoria), ~ BEval (bbool true) m false.
+Proof.
+  intros m H.
+  inversion H.
+Qed.
+
+Theorem teo_b : forall (m : Memoria) (e1 e2 : BoolExpr) (w : Valor),
+  BEval e1 m true /\ BEval e2 m w -> BEval (band e1 e2) m w.
+Proof.
+  intros m e1 e2 w H.
+  elim H.
+  intros H1 H2.
+  induction w.
+  - apply eandrl; assumption.
+  - apply eandr. assumption.
+Qed.
+
+Theorem teo_c : forall (m : Memoria) (e : BoolExpr) (w1 w2 : Valor),
+  BEval e m w1 /\ BEval e m w2 -> w1 = w2.
+Proof.
+  intros m e w1 w2 [H1 H2].
+  revert w2 H2.
+  induction H1; intros w2 H2; inversion H2; subst; try reflexivity.
+  - apply IHBEval. assumption.
+  - apply IHBEval. assumption.
+  - apply IHBEval1. assumption.
+  - apply IHBEval2. assumption.
+  - symmetry. apply IHBEval. assumption.
+  - symmetry. apply IHBEval. assumption.
+  (* induction H1; intros w2 H2; inversion H2.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - subst. apply IHBEval. assumption.
+  - reflexivity.
+  - reflexivity.
+  - subst. apply IHBEval. assumption.
+  - subst. apply IHBEval1. assumption.
+  - subst. apply IHBEval2. assumption.
+  - reflexivity.
+  - reflexivity.
+  - subst. symmetry. apply IHBEval. assumption.
+  - subst. symmetry. apply IHBEval. assumption.
+  - reflexivity. *)
+Qed.
+
+Theorem teo_d : forall (m : Memoria) (e1 e2 : BoolExpr),
+  BEval e1 m false -> BEval (bnot (band e1 e2)) m true.
+Proof.
+  intros m e1 e2 H.
+  apply enotf.
+  apply eandl.
+  assumption.
+Qed.
+
+(* 4. Escriba en Coq una función beval:Memoria->BoolExpr->Valor que evalúe las 
+expresiones booleanas por valor (o sea que evalúe todas las subexpresiones de una 
+expresión).   *)
+
+Fixpoint beval (m:Memoria) (e:BoolExpr) : Valor :=
+  match e with
+  | bvar var => lookup m var
+  | bbool b => b
+  | band a b =>
+    if beval m a
+    then 
+      if beval m b
+      then true
+      else false
+    else 
+      if beval m b
+      then false
+      else false
+  | bnot a =>
+    if beval m a
+    then false
+    else true
+  end.
+
+(* 5. Demuestre que la función definida en la parte anterior es una estrategia correcta de 
+evaluación con respecto a la relación . Es decir que (e,   (beval  e). *)
+
+Theorem teo_5_5 : forall (m : Memoria) (e : BoolExpr), BEval e m (beval m e).
+Proof.
+  intros m e.
+  induction e; simpl.
+  - apply evar.
+  - destruct b.
+    + apply eboolt.
+    + apply eboolf.
+  - destruct (beval m e1);
+    destruct (beval m e2).
+    + apply eandrl; assumption.
+    + apply eandr; assumption.
+    + apply eandl; assumption.
+    + apply eandl; assumption.
+  - destruct (beval m e).
+    + apply enott; assumption.
+    + apply enotf; assumption.
+Qed.
+
+End Ejercicio5.
