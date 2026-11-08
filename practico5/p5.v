@@ -502,7 +502,8 @@ Escriba el término Coq correspondiente a la sintaxis abstracta del programa
 anterior utilizando la notación infija del constructor de listas definida en la parte
 anterior. *)
 Notation "i ; li" := (LIcons i li) (at level 100, right associativity).
-Check (Iprog (Iasign 1 (bbool true) ; Iasign 2 (bnot (bvar 1)) ; LInull)).
+Definition PP (v1 v2 : Var) := (Iprog (Iasign v1 (bbool true) ; Iasign v2 (bnot (bvar v1)) ; LInull)).
+Check PP.
 
 (* b. Considere el siguiente programa swap en el cual v1, v2 y aux son variables.
    Begin
@@ -512,7 +513,8 @@ Check (Iprog (Iasign 1 (bbool true) ; Iasign 2 (bnot (bvar 1)) ; LInull)).
    End
 Escriba el término Coq correspondiente a la sintaxis abstracta de swap utilizando
 la notación infija del constructor de listas definida en la parte anterior. *)
-Check (Iprog (Iasign 3 (bvar 1) ; Iasign 1 (bvar 2) ; Iasign 2 (bvar 3) ; LInull)).
+Definition swap (aux v1 v2 : Var) := (Iprog (Iasign aux (bvar v1) ; Iasign v1 (bvar v2) ; Iasign v2 (bvar aux) ; LInull)).
+Check swap.
 
 (* 3. Defina una función updtate:Memoria→Var→Valor→Memoria tal que el resultado de
 (update δ v w) es una memoria igual a δ excepto por el valor de la variable v que ahora es
@@ -569,30 +571,124 @@ Regla xEmptyblock: (ε, δ) »L δ
 Regla xNext:       Si (i, δ) » δ1 y (li, δ1) »L δ2 entonces (i; li, δ) »L δ2
 
 1. Defina en Coq la relación Execute que implemente la definición anterior. *)
-
+Inductive Execute : Instr -> Memoria -> Memoria -> Prop :=
+  | xAss : forall (m : Memoria) (e : BoolExpr) (v : Var) (w : Valor), 
+      BEval e m w -> Execute (Iasign v e) m (update m v w)
+  | xSkip : forall (m : Memoria), Execute Iskip m m
+  | xIFthen : forall (m m' : Memoria) (c : BoolExpr) (p1 p2 : Instr),
+      BEval c m true -> Execute p1 m m' -> Execute (Iifelse c p1 p2) m m'
+  | xIFelse : forall (m m' : Memoria) (c : BoolExpr) (p1 p2 : Instr),
+      BEval c m false -> Execute p2 m m' -> Execute (Iifelse c p1 p2) m m'
+  | xWhileTrue : forall (m m1 m2 : Memoria) (c : BoolExpr) (p : Instr),
+      BEval c m true -> Execute p m m1 -> Execute (Iwhile c p) m1 m2 -> Execute (Iwhile c p) m m2
+  | xWhileFalse : forall (m : Memoria) (c : BoolExpr) (p : Instr),
+      BEval c m false -> Execute (Iwhile c p) m m
+  | xRepeat0 : forall (m : Memoria) (i : Instr),
+      Execute (Irepeat 0 i) m m
+  | xRepeatS : forall (m1 m2 m3: Memoria) (i : Instr) (n : nat),
+      Execute i m1 m2 -> Execute (Irepeat n i) m2 m3 -> Execute (Irepeat (S n) i) m1 m3
+  | xBeginEnd : forall (m m1 : Memoria) (p : LInstr),
+      ExecuteList p m m1 -> Execute (Iprog p) m m1
+with ExecuteList : LInstr -> Memoria -> Memoria -> Prop :=
+  | xEmptyblock : forall (m : Memoria), ExecuteList LInull m m
+  | xNext : forall (m m1 m2: Memoria) (li : LInstr) (i : Instr),
+      Execute i m m1 -> ExecuteList li m1 m2 -> ExecuteList (LIcons i li) m m2.
 
 (* 2. Demuestre que si (If (¬ c) Then e1 Else e2, δ) » δ' entonces (If c Then e2 Else e1, δ) » δ',
 cualesquiera sean c, e1, e2, δ y δ'. *)
-
+Theorem teo_7_2 : forall (c : BoolExpr) (e1 e2 : Instr) (m m' : Memoria),
+  Execute (Iifelse (bnot c) e1 e2) m m' -> Execute (Iifelse c e2 e1) m m'.
+Proof.
+  intros c e1 e2 m m' H.
+  inversion H; subst.
+  - apply xIFelse.
+    + inversion H5. assumption.
+    + assumption.
+  - apply xIFthen.
+    + inversion H5. assumption.
+    + assumption.
+Qed.
 
 (* 3. Demuestre que si (While false Do p, δ) » δ' entonces δ = δ', cualesquiera sean p, δ y δ'. *)
-
+Theorem teo_7_3 : forall (p : Instr) (m m' : Memoria),
+  Execute (Iwhile (bbool false) p) m m' -> m = m'.
+Proof.
+  intros p m m' H.
+  inversion H; subst.
+  - inversion H2.
+  - reflexivity.
+Qed.
 
 (* 4. Demuestre que si ((If c Then p Else Skip); While c Do p, δ) » δ' entonces
 (While c Do p, δ) » δ', cualesquiera sean p, c, δ y δ'. *)
-
+Theorem teo_7_4 : forall (p : Instr) (c : BoolExpr) (m m' : Memoria),
+  ExecuteList (LIcons (Iifelse c p Iskip) (LIcons (Iwhile c p) LInull)) m m' -> Execute (Iwhile c p) m m'.
+Proof.
+  intros p c m m' H.
+  inversion H; subst.
+  inversion H5; subst.
+  inversion H7; subst.
+  inversion H2; subst.
+  - apply (xWhileTrue m m1 m');
+    assumption.
+  - inversion H10; subst.
+    assumption.
+Qed.
 
 (* 5. Demuestre que si (i; (Repeat n i), δ1) » δ2 entonces (Repeat n+1 i, δ1) » δ2,
 cualesquiera sean n, i, δ1 y δ2. *)
-
+Theorem teo_7_5 : forall (n : nat) (i : Instr) (m1 m2 : Memoria),
+  ExecuteList (LIcons i (LIcons (Irepeat n i) LInull)) m1 m2 -> Execute (Irepeat (S n) i) m1 m2.
+Proof.
+  intros n i m1 m2 H.
+  inversion H; subst.
+  apply (xRepeatS m1 m0 m2).
+  - assumption.
+  - inversion H5; subst.
+    inversion H7; subst.
+    assumption.
+Qed.
 
 (* 6. Demuestre que si (Repeat n1 i, δ1) » δ2 y (Repeat n2 i, δ2) » δ3 entonces
 (Repeat n1+n2 i, δ1) » δ3, cualesquiera sean n1, n2, i, δ1, δ2 y δ3. *)
-
+Theorem teo_7_6 : forall (n1 n2 : nat) (i : Instr) (m1 m2 m3 : Memoria),
+  Execute (Irepeat n1 i) m1 m2 -> Execute (Irepeat n2 i) m2 m3 -> Execute (Irepeat (n1 + n2) i) m1 m3.
+Proof.
+  intros n1 n2 i.
+  induction n1; simpl;
+  intros m1 m2 m3 H1 H2;
+  inversion H1; subst.
+  - assumption.
+  - apply (xRepeatS m1 m4 m3).
+    + assumption.
+    + apply (IHn1 m4 m2 m3).
+      * assumption.
+      * assumption.
+Qed.
 
 (* 7. Pruebe que para toda memoria δ, si v1 y v2 son variables distintas, la ejecución del
 programa PP del ejercicio anterior da como resultado una memoria en la cual v2 tiene el
 valor false y v1 tiene el valor true. *)
-
+Theorem teo_7_7 : forall (m m' : Memoria) (v1 v2 : Var),
+  ~ v1 = v2 -> Execute (PP v1 v2) m m' -> lookup m' v1 = true /\ lookup m' v2 = false.
+Proof.
+  intros m m' v1 v2 H1 H2.
+  unfold PP in H2.
+  inversion H2; subst. clear H2.
+  inversion H0; subst. clear H0.
+  inversion H3 as [m0 e v w Hev | | | | | | | | ]; subst. clear H3.
+  inversion Hev; subst. clear Hev.
+  inversion H6; subst. clear H6.
+  inversion H5; subst. clear H5.
+  inversion H2 as [m0 e v w Hev | | | | | | | | ]; subst. clear H2.
+  inversion Hev; subst.
+  - split.
+    + rewrite teo_6_5.
+      * apply teo_6_4.
+      * intro E. apply H1. symmetry. assumption.
+    + apply teo_6_4.
+  - inversion H0 as [v m0 Hv Hm Hl | | | | | | |].
+    rewrite teo_6_4 in Hl. discriminate Hl.
+Qed.
 
 End Ejercicio7.
