@@ -1,4 +1,5 @@
 (* Nicolas Pereira - 5.139.786-4 *)
+From Stdlib Require Import Arith.
 
 Section Ejercicio1.
 (* Ejercicio 5.1.  Considere las siguientes relaciones inductivas:  
@@ -303,15 +304,15 @@ Inductive SinRepetidos : AB -> Prop :=
 End Ejercicio4.
 
 Section Ejercicio5.
-(* Ejercicio 5.5.  Considere la siguiente gramática para expresiones booleanas: 
-Var  : =   0  |  1  |  2 | ... 
-bool   : =   true  | false  
-BE  : =   Var   
-  | bool   
-  | (  BE  /\  BE  )   
-  | ( ~  BE )  
-1. Defina en Coq los tipos Var como el conjunto de naturales y BoolExpr para representar 
-el lenguaje BE.   *)
+(* Ejercicio 5.5. Considere la siguiente gramática para expresiones booleanas:
+Var  ::= 0 | 1 | 2 | ...
+bool ::= true | false
+BE   ::= Var
+       | bool
+       | ( BE ∧ BE )
+       | ( ¬ BE )
+1. Defina en Coq los tipos Var como el conjunto de naturales y BoolExpr para representar
+el lenguaje BE. *)
 Definition Var := nat.
 
 Inductive BoolExpr : Set :=
@@ -320,22 +321,22 @@ Inductive BoolExpr : Set :=
   | band : BoolExpr -> BoolExpr -> BoolExpr
   | bnot : BoolExpr -> BoolExpr.
 
-(* 2. La memoria es una función que asocia un valor booleano a cada variable y se dispone de 
-una función lookup que dada una memoria y una variable, devuelve el valor de la 
-variable en la memoria; lookup: Memoria -> Var -> Valor. La notación (e, )  w se lee 
-“la expresión booleana e se evalúa al valor booleano w en la memoria ”.  
-Definimos la relación de evaluación de expresiones booleanas en un estado de la 
-memoria , donde el conjunto de valores es bool, de acuerdo a las siguientes reglas:   
-Regla evar: (v, )  (lookup  v)   
-Regla eboolt: (true, )  true   
-Regla eboolf: (false, )  false  
-Regla eandl: Si (e1,)  false entonces ((e1e2),)  false   
-Regla eandr: Si (e2,)  false entonces ((e1e2),)  false   
-Regla eandrl: Si (e1,)  true y (e2,)  true entonces ((e1e2),)  true  
-Regla enott: Si (e,)  true entonces (e,  false   
-Regla enotf: Si (e,)  false entonces (e,  true 
-Defina en Coq los tipos Valor, Memoria y la relación BEval definida por las reglas 
-anteriores.   *)
+(* 2. La memoria es una función que asocia un valor booleano a cada variable y se dispone de
+una función lookup que dada una memoria y una variable, devuelve el valor de la
+variable en la memoria; lookup: Memoria → Var → Valor. La notación (e, δ) ≻ w se lee
+"la expresión booleana e se evalúa al valor booleano w en la memoria δ".
+Definimos la relación de evaluación de expresiones booleanas en un estado de la
+memoria δ, donde el conjunto de valores es bool, de acuerdo a las siguientes reglas:
+Regla evar:   (v, δ) ≻ (lookup δ v)
+Regla eboolt: (true, δ) ≻ true
+Regla eboolf: (false, δ) ≻ false
+Regla eandl:  Si (e1, δ) ≻ false entonces ((e1 ∧ e2), δ) ≻ false
+Regla eandr:  Si (e2, δ) ≻ false entonces ((e1 ∧ e2), δ) ≻ false
+Regla eandrl: Si (e1, δ) ≻ true y (e2, δ) ≻ true entonces ((e1 ∧ e2), δ) ≻ true
+Regla enott:  Si (e, δ) ≻ true entonces (¬e, δ) ≻ false
+Regla enotf:  Si (e, δ) ≻ false entonces (¬e, δ) ≻ true
+Defina en Coq los tipos Valor, Memoria y la relación BEval definida por las reglas
+anteriores. *)
 Definition Valor := bool.
 
 Definition Memoria := Var -> Valor.
@@ -356,11 +357,11 @@ Inductive BEval : BoolExpr -> Memoria -> Valor -> Prop :=
   | enotf : forall (e : BoolExpr) (m : Memoria), 
       BEval e m false -> BEval (bnot e) m true.
 
-(* 3. Demuestre en Coq las siguientes propiedades:  
-a. Para toda memoria  la expresión true evaluada en la memoria  nunca da el valor false.  
-b. Si (e1,   true y si (e2,   w entonces (e1e2, )  w cualesquiera sean , e1, e2 y w.  
-c. Si (e,   w1 y (e,   w2 entonces w1 = w2, cualesquiera sean w1 y w2.  
-d. Si (e1,   false entonces no se da que ((e1e2),  true, cualesquiera sean e1 y e2.   *)
+(* 3. Demuestre en Coq las siguientes propiedades:
+a. Para toda memoria δ la expresión true evaluada en la memoria δ nunca da el valor false.
+b. Si (e1, δ) ≻ true y si (e2, δ) ≻ w entonces (e1 ∧ e2, δ) ≻ w cualesquiera sean δ, e1, e2 y w.
+c. Si (e, δ) ≻ w1 y (e, δ) ≻ w2 entonces w1 = w2, cualesquiera sean w1 y w2.
+d. Si (e1, δ) ≻ false entonces no se da que (¬(e1 ∧ e2), δ) ≻ true, cualesquiera sean e1 y e2. *)
 
 Theorem teo_a : forall (m : Memoria), ~ BEval (bbool true) m false.
 Proof.
@@ -419,9 +420,9 @@ Proof.
   assumption.
 Qed.
 
-(* 4. Escriba en Coq una función beval:Memoria->BoolExpr->Valor que evalúe las 
-expresiones booleanas por valor (o sea que evalúe todas las subexpresiones de una 
-expresión).   *)
+(* 4. Escriba en Coq una función beval:Memoria->BoolExpr->Valor que evalúe las
+expresiones booleanas por valor (o sea que evalúe todas las subexpresiones de una
+expresión). *)
 
 Fixpoint beval (m:Memoria) (e:BoolExpr) : Valor :=
   match e with
@@ -443,8 +444,8 @@ Fixpoint beval (m:Memoria) (e:BoolExpr) : Valor :=
     else true
   end.
 
-(* 5. Demuestre que la función definida en la parte anterior es una estrategia correcta de 
-evaluación con respecto a la relación . Es decir que (e,   (beval  e). *)
+(* 5. Demuestre que la función definida en la parte anterior es una estrategia correcta de
+evaluación con respecto a la relación ≻. Es decir que (e, δ) ≻ (beval δ e). *)
 
 Theorem teo_5_5 : forall (m : Memoria) (e : BoolExpr), BEval e m (beval m e).
 Proof.
@@ -466,3 +467,132 @@ Proof.
 Qed.
 
 End Ejercicio5.
+
+Section Ejercicio6.
+(* Ejercicio 5.6. Considere el siguiente mini-lenguaje imperativo definido por la gramática:
+I  ::= Skip
+     | Var := BE
+     | IF BE Then I Else I
+     | While BE Do I
+     | Repeat nat I
+     | Begin LI End
+LI ::= ε
+     | I ; LI
+1. Defina en Coq los tipos Instr, LInstr para representar la sintaxis abstracta de los
+programas (I y LI respectivamente). *)
+Inductive Instr : Set :=
+  | Iskip : Instr
+  | Iasign : Var -> BoolExpr -> Instr
+  | Iifelse : BoolExpr -> Instr -> Instr -> Instr
+  | Iwhile : BoolExpr -> Instr -> Instr
+  | Irepeat : nat -> Instr -> Instr
+  | Iprog : LInstr -> Instr
+with LInstr : Set :=
+  | LInull : LInstr
+  | LIcons : Instr -> LInstr -> LInstr.
+
+(* 2. Asocie una notación infija al operador de constructor de listas no vacías, de forma que
+sea asociativo a la derecha.
+a. Considere el siguiente programa PP en el cual v1 y v2 son variables.
+   Begin
+     v1 := true ;
+     v2 := ¬v1
+   End
+Escriba el término Coq correspondiente a la sintaxis abstracta del programa
+anterior utilizando la notación infija del constructor de listas definida en la parte
+anterior. *)
+Notation "i ; li" := (LIcons i li) (at level 100, right associativity).
+Check (Iprog (Iasign 1 (bbool true) ; Iasign 2 (bnot (bvar 1)) ; LInull)).
+
+(* b. Considere el siguiente programa swap en el cual v1, v2 y aux son variables.
+   Begin
+     aux := v1 ;
+     v1 := v2 ;
+     v2 := aux
+   End
+Escriba el término Coq correspondiente a la sintaxis abstracta de swap utilizando
+la notación infija del constructor de listas definida en la parte anterior. *)
+Check (Iprog (Iasign 3 (bvar 1) ; Iasign 1 (bvar 2) ; Iasign 2 (bvar 3) ; LInull)).
+
+(* 3. Defina una función updtate:Memoria→Var→Valor→Memoria tal que el resultado de
+(update δ v w) es una memoria igual a δ excepto por el valor de la variable v que ahora es
+w. *)
+Definition update (m : Memoria) (v : Var) (w : Valor) : Memoria :=
+  fun v' => if Nat.eqb v v' then w else m v'.
+
+(* 4. Pruebe que: lookup (update (δ, var, val), var) = val, cualesquiera sean var, val y δ. *)
+Theorem teo_6_4 : forall (m : Memoria) (var : Var) (val : Valor), lookup (update m var val) var = val.
+Proof.
+  intros m var val.
+  unfold lookup.
+  unfold update.
+  rewrite Nat.eqb_refl.
+  reflexivity.
+Qed.
+
+(* 5. Pruebe que: si var <> var' entonces lookup (update (δ, var, val), var') = lookup (δ, var'),
+cualesquiera sean var, var', val y δ. *)
+Theorem teo_6_5 : forall (m : Memoria) (var var' : Var) (val : Valor),
+  ~ (var = var') -> lookup (update m var val) var' = lookup m var'.
+Proof.
+  intros m var var' val H.
+  unfold lookup.
+  unfold update.
+  apply Nat.eqb_neq in H.
+  rewrite H.
+  reflexivity.
+Qed.
+
+End Ejercicio6.
+
+Section Ejercicio7.
+(* Ejercicio 5.7. Considere la siguiente especificación de un intérprete de instrucciones para el
+minilenguaje imperativo definido en el ejercicio anterior. El resultado de la ejecución de un
+programa en un estado de la memoria, devuelve un nuevo estado de la memoria.
+
+Notación:
+  (e, δ) ≻ w    la expresión booleana e se evalúa a w en la memoria δ  (BEval del ej 5.5)
+  (i, δ) » δ'   ejecutar la instrucción i en δ da como resultado la memoria δ'
+  (li, δ) »L δ' ejecutar la lista de instrucciones li en δ da como resultado δ'
+
+Regla xAss:        Si (e, δ) ≻ w entonces (v := e, δ) » (update δ v w)
+Regla xSkip:       (Skip, δ) » δ
+Regla xIFthen:     Si (c, δ) ≻ true y (p1, δ) » δ1 entonces (If c Then p1 Else p2, δ) » δ1
+Regla xIFelse:     Si (c, δ) ≻ false y (p2, δ) » δ2 entonces (If c Then p1 Else p2, δ) » δ2
+Regla xWhileTrue:  Si (c, δ) ≻ true y (p, δ) » δ1 y (While c Do p, δ1) » δ2 entonces
+                   (While c Do p, δ) » δ2
+Regla xWhileFalse: Si (c, δ) ≻ false entonces (While c Do p, δ) » δ
+Regla xRepeat0:    (Repeat 0 i, δ) » δ
+Regla xRepeatS:    Si (i, δ1) » δ2 y (Repeat n i, δ2) » δ3 entonces (Repeat n+1 i, δ1) » δ3
+Regla xBeginEnd:   Si (p, δ) »L δ1 entonces (Begin p End, δ) » δ1
+Regla xEmptyblock: (ε, δ) »L δ
+Regla xNext:       Si (i, δ) » δ1 y (li, δ1) »L δ2 entonces (i; li, δ) »L δ2
+
+1. Defina en Coq la relación Execute que implemente la definición anterior. *)
+
+
+(* 2. Demuestre que si (If (¬ c) Then e1 Else e2, δ) » δ' entonces (If c Then e2 Else e1, δ) » δ',
+cualesquiera sean c, e1, e2, δ y δ'. *)
+
+
+(* 3. Demuestre que si (While false Do p, δ) » δ' entonces δ = δ', cualesquiera sean p, δ y δ'. *)
+
+
+(* 4. Demuestre que si ((If c Then p Else Skip); While c Do p, δ) » δ' entonces
+(While c Do p, δ) » δ', cualesquiera sean p, c, δ y δ'. *)
+
+
+(* 5. Demuestre que si (i; (Repeat n i), δ1) » δ2 entonces (Repeat n+1 i, δ1) » δ2,
+cualesquiera sean n, i, δ1 y δ2. *)
+
+
+(* 6. Demuestre que si (Repeat n1 i, δ1) » δ2 y (Repeat n2 i, δ2) » δ3 entonces
+(Repeat n1+n2 i, δ1) » δ3, cualesquiera sean n1, n2, i, δ1, δ2 y δ3. *)
+
+
+(* 7. Pruebe que para toda memoria δ, si v1 y v2 son variables distintas, la ejecución del
+programa PP del ejercicio anterior da como resultado una memoria en la cual v2 tiene el
+valor false y v1 tiene el valor true. *)
+
+
+End Ejercicio7.
