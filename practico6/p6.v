@@ -1,6 +1,6 @@
 (* Nicolas Pereira - 5.139.786-4 *)
 
-Require Import Coq.extraction.ExtrHaskellBasic.
+Require Extraction.
 Extraction Language Haskell.
 Set Extraction Output Directory "./practico6".
 
@@ -86,7 +86,7 @@ Extraction "mirror_function2" MirrorC2.
 
 Section Ejercicio3.
 (* Ejercicio 6.3.
-1. Considere la siguiente simplificación de los tipos del ejercicio 5.5 del práctico anterior.
+1. Considere la siguiente simplificación de los tipos del ejercicio 5.5 del práctico anterior. *)
 Definition Value := bool.
 
 Inductive BoolExpr : Set :=
@@ -103,7 +103,7 @@ Inductive BEval : BoolExpr -> Value -> Prop :=
   | enott : forall e : BoolExpr, BEval e true -> BEval (bnot e) false
   | enotf : forall e : BoolExpr, BEval e false -> BEval (bnot e) true.
 
-y los siguientes programas de evaluación de expresiones.
+(* y los siguientes programas de evaluación de expresiones. *)
 
 Fixpoint beval1 (e : BoolExpr) : Value :=
   match e with
@@ -126,18 +126,73 @@ Fixpoint beval2 (e : BoolExpr) : Value :=
   | bnot e1 => if beval2 e1 then false else true
   end.
 
-Demuestre sendos lemas de corrección (beval1C y beval2C) que establezcan que los
+(* Demuestre sendos lemas de corrección (beval1C y beval2C) que establezcan que los
 programas beval1 y beval2 son correctos con respecto a la especificación:
 forall e:BoolExpr, {b:Value |(BEval e b)}. *)
+Functional Scheme beval1_ind := Induction for beval1 Sort Prop.
+Lemma beval1C : forall e:BoolExpr, {b:Value |(BEval e b)}.
+Proof.
+  intros e.
+  exists (beval1 e).
+  functional induction (beval1 e).
+  - apply ebool.
+  - rewrite e3 in *. rewrite e4 in *. apply eandrl; assumption.
+  - rewrite e4 in *. apply eandr. assumption.
+  - rewrite e3 in *. apply eandl. assumption.
+  - rewrite e2 in *. apply enott. assumption.
+  - rewrite e2 in *. apply enotf. assumption.
+Defined.
+
+Functional Scheme beval2_ind := Induction for beval2 Sort Prop.
+Lemma beval2C : forall e:BoolExpr, {b:Value | (BEval e b)}.
+Proof.
+  intros e.
+  exists (beval2 e).
+  functional induction (beval2 e).
+  - apply ebool.
+  - rewrite e3 in *. destruct (beval2 e2).
+    + apply eandrl; assumption.
+    + apply eandr. assumption.
+  - rewrite e3 in *. apply eandl. assumption.
+  - rewrite e2 in *. apply enott. assumption.
+  - rewrite e2 in *. apply enotf. assumption.
+Defined.
 
 (* 2. Redemuestre los lemas poniendo en Hint los constructores de la relación BEval. *)
+Hint Constructors BEval : core.
+
+Lemma beval12C : forall e:BoolExpr, {b:Value |(BEval e b)}.
+Proof.
+  intros e.
+  exists (beval1 e).
+  functional induction (beval1 e);
+  try rewrite e3 in *;
+  try rewrite e4 in *;
+  try rewrite e2 in *;
+  auto.
+Defined.
+
+Lemma beval22C : forall e:BoolExpr, {b:Value | (BEval e b)}.
+Proof.
+  intros e.
+  exists (beval2 e).
+  functional induction (beval2 e);
+  try rewrite e3 in *;
+  try rewrite e2 in *;
+  try destruct (beval2 e2);
+  auto.
+Defined.
+
+End Ejercicio3.
 
 (* 3. Extraiga de los lemas de corrección código Haskell de los evaluadores demostrados. *)
+Extraction "beval" beval1C beval2C.
 
 (* 4. Regenere el archivo Haskell del punto anterior de forma que el tipo bool de Coq sea
 extraído como el tipo bool de Haskell. *)
+Require Import Coq.extraction.ExtrHaskellBasic.
+Extraction "beval_bool" beval1C beval2C.
 
-End Ejercicio3.
 
 Section Ejercicio4.
 (* Ejercicio 6.4.
