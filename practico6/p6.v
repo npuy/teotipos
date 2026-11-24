@@ -4,6 +4,10 @@ Require Extraction.
 Extraction Language Haskell.
 Set Extraction Output Directory "./practico6".
 
+Require Import Lia.
+Require Import DecBool.
+Require Import Compare_dec.
+
 Section Ejercicio1.
 (* Ejercicio 6.1.
 1. Demuestre en Coq el siguiente lema que especifica la función predecesor para números
@@ -198,6 +202,7 @@ Section Ejercicio4.
 (* Ejercicio 6.4.
 Considere las siguientes definiciones que formalizan la relación de permutación entre listas:
 Section list_perm.
+*)
 
 Variable A:Set.
 
@@ -217,15 +222,31 @@ Inductive perm : list -> list ->Prop:=
   |perm_app: forall a l, perm (cons a l) (append l (cons a nil))
   |perm_trans: forall l1 l2 l3, perm l1 l2 -> perm l2 l3 -> perm l1 l3.
 
-Hint Constructors perm. *)
+Hint Constructors perm : core. 
 
 (* 1. Defina una función reverse que dada una lista retorne la lista invertida. *)
+Fixpoint reverse (l : list) : list :=
+  match l with
+  | nil => nil
+  | cons a lr => append (reverse lr) (cons a nil)
+  end.
+
+Functional Scheme reverse_ind := Induction for reverse Sort Prop.
 
 (* 2. Pruebe que la función reverse de una lista es una implementación de la siguiente
 especificación:
+*)
 Lemma Ej6_4: forall l: list, {l2: list | perm l l2}.
-...
-End list_perm. *)
+Proof.
+  intros l.
+  exists (reverse l).
+  functional induction (reverse l).
+  - apply perm_refl.
+  - apply (perm_cons a) in IHl0.
+    apply perm_trans with (l2 := (cons a (reverse lr))).
+    + assumption.
+    + apply perm_app.
+Defined.
 
 End Ejercicio4.
 
@@ -234,22 +255,74 @@ Section Ejercicio5.
 1. Defina los predicados Le:nat->nat->Prop y Gt:nat->nat->Prop que representan las
 relaciones menor o igual y mayor entre números naturales respectivamente. *)
 
+Inductive Le : nat -> nat -> Prop :=
+  | leO : forall n : nat, Le 0 n
+  | leS : forall n m : nat, Le n m -> Le (S n) (S m).
+
+Inductive Gt : nat -> nat -> Prop :=
+  | gtO : forall n : nat, Gt (S n) 0
+  | gtS : forall n m : nat, Gt n m -> Gt (S n) (S m).
+
 (* 2. Demuestre que el orden entre números naturales es decidible probando el siguiente lema:
 Le_Gt_dec: forall n m:nat, {(Le n m)}+{(Gt n m)}. Para ello, escriba un
 programa leBool:nat->nat->bool que "decida" si un número natural es menor o igual
 que otro y utilícelo junto con la táctica functional induction en la prueba del lema. *)
+Fixpoint leBool (n m : nat) : bool :=
+  match n with
+  | 0 => true
+  | S n' => 
+    match m with
+    | 0 => false
+    | S m' => leBool n' m'
+    end
+  end.
+
+Functional Scheme leBool_ind := Induction for leBool Sort Prop.
+Functional Scheme leBool_rec := Induction for leBool Sort Set.
+
+Lemma Le_Gt_dec: forall n m:nat, {(Le n m)}+{(Gt n m)}.
+Proof.
+  intros n m.
+  functional induction (leBool n m).
+  - left.
+    apply leO.
+  - right.
+    apply gtO.
+  - destruct IHb.
+    + left.
+      apply leS.
+      assumption.
+    + right.
+      apply gtS.
+      assumption.
+Defined.
 
 (* 3. Considere la función leBool definida en la parte anterior. Demuestre el lema de
 decidibilidad le_gt_dec: forall n m:nat, {(le n m)}+{(gt n m)} donde le y
 gt son las relaciones de la biblioteca Coq. Para hacer la prueba emplee la táctica
 functional induction e intente demostrar los objetivos aritméticos con la táctica
 omega (incluya previamente el módulo Omega). *)
+Lemma le_gt_dec: forall n m:nat, {(le n m)}+{(gt n m)}.
+Proof.
+  intros n m.
+  functional induction (leBool n m).
+  - left.
+    lia.
+  - right.
+    lia.
+  - destruct IHb.
+    + left.
+      lia.
+    + right.
+      lia.
+Defined.
 
 End Ejercicio5.
 
 Section Ejercicio6.
 (* Ejercicio 6.6.
 Considere la siguiente especificación de la división euclideana vista en el curso:
+*)
 
 Definition spec_res_nat_div_mod (a b:nat) (qr:nat*nat) :=
   match qr with
@@ -258,8 +331,28 @@ Definition spec_res_nat_div_mod (a b:nat) (qr:nat*nat) :=
 
 Definition nat_div_mod :
   forall a b:nat, not(b=0) -> {qr:nat*nat | spec_res_nat_div_mod a b qr}.
+Proof.
+  intros a b H.
+  induction a.
+  - exists (0,0).
+    simpl.
+    lia.
+  - destruct IHa as [[q r] H1].
+    simpl in H1.
+    destruct (lt_dec r (b-1)).
+    + exists (q, r+1).
+      simpl.
+      lia.
+    + exists (q+1, 0).
+      simpl.
+      lia.
+Defined.
 
-Derive a partir de la especificación anterior un algoritmo para la división.
+End Ejercicio6.
+
+Extraction "divmod" nat_div_mod.
+
+(* Derive a partir de la especificación anterior un algoritmo para la división.
 Sugerencia: considere en la prueba la lógica de la siguiente solución (con b>0):
   • 0 divmod b = (0,0)
   • (n+1) divmod b = let (q,r) = n divmod b
@@ -271,8 +364,6 @@ Incorpore al contexto los siguientes módulos:
 Require Import Lia.
 Require Import DecBool.
 Require Import Compare_dec. *)
-
-End Ejercicio6.
 
 Section Ejercicio7.
 (* Ejercicio 6.7.
