@@ -7,6 +7,8 @@ Set Extraction Output Directory "./practico6".
 Require Import Lia.
 Require Import DecBool.
 Require Import Compare_dec.
+Require Import Wf_nat.
+Require Import Inverse_Image.
 
 Section Ejercicio1.
 (* Ejercicio 6.1.
@@ -368,7 +370,7 @@ Require Import Compare_dec. *)
 Section Ejercicio7.
 (* Ejercicio 6.7.
 Considere las siguientes definiciones que permiten formalizar una relación de subárbol entre
-árboles binarios.
+árboles binarios. *)
 
 Inductive tree (A:Set) : Set :=
   | leaf : tree A
@@ -378,9 +380,21 @@ Inductive tree_sub (A:Set) (t:tree A) : tree A -> Prop :=
   | tree_sub1 : forall (t':tree A) (x:A), tree_sub A t (node A x t t')
   | tree_sub2 : forall (t':tree A) (x:A), tree_sub A t (node A x t' t).
 
-Pruebe que la relación tree_sub es un orden bien fundado.
+(* Pruebe que la relación tree_sub es un orden bien fundado. *)
 
-Theorem well_founded_tree_sub : forall A:Set, well_founded (tree_sub A). *)
+Theorem well_founded_tree_sub : forall A:Set, well_founded (tree_sub A).
+Proof.
+  intros A t.
+  induction t.
+  - constructor. 
+    intros t' H.
+    inversion H.
+  - constructor.
+    intros t' H.
+    inversion H; subst.
+    + assumption.
+    + assumption.
+Defined.
 
 End Ejercicio7.
 
@@ -390,33 +404,29 @@ Considere los tipos Value, BoolExpr y BEval definidos en el ejercicio 3.
 1. Defina un orden bien fundado elt (Expresions Less Than) que justifique la terminación
 de los programas que evalúan expresiones (de forma ansiosa y perezosa) definidos en el
 ejercicio 3. Defina el orden a partir de una función size de tipo BooExpr->nat, como
-sigue:
-Definition elt (e1 e2 : BoolExpr) := size e1 < size e2. *)
+sigue: *)
+
+(* Inductive BoolExpr : Set :=
+  | bbool : bool -> BoolExpr
+  | band : BoolExpr -> BoolExpr -> BoolExpr
+  | bnot : BoolExpr -> BoolExpr. *)
+
+Fixpoint size (e : BoolExpr) : nat :=
+  match e with
+  | bbool _ => 1
+  | band a b => (size a) + (size b) + 1
+  | bnot a => (size a) + 1
+  end.
+
+Definition elt (e1 e2 : BoolExpr) := size e1 < size e2.
 
 (* 2. Demuestre que el orden elt es bien fundado. Sugerencia: utilice los módulos Wf_nat e
 Inverse_Image. *)
+Theorem well_founded_bool_exp : well_founded elt.
+Proof.
+  unfold elt.
+  apply wf_inverse_image.
+  apply lt_wf.
+Defined.
 
 End Ejercicio8.
-
-Section Ejercicio9.
-(* Ejercicio 6.9.
-Considere lista de naturales y la función insert_sort del práctico 4. Demuestre que dicha
-función es una implementación correcta de la siguiente especificación:
-
-SORT: forall l:(list nat), {s:(list nat) |
-      (sorted nat le s) /\ (perm nat l s)}, donde:
-
-  sorted: forall A:Set, (R:A->A->Prop)->(l:list A)->Prop, es el predicado definido
-  en el práctico 4,
-  le:nat->nat->Prop es el orden ≤ entre números naturales, y
-  perm: forall A:Set, (list A)->(list A)->Prop es la relación de permutación entre
-  listas.
-
-Nota: considere la variante de la definición de permutaciones entre listas del ejercicio 4 que
-sigue:
-  Sustituir el constructor:
-    |perm_app: forall a l, perm (cons a l) (append l (cons a nil))
-  por el constructor:
-    |p_ccons: forall a b l (perm (cons a (cons b l)) (cons b (cons a l))) *)
-
-End Ejercicio9.
